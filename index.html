@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ATM Cash Inventory Manager</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="atm-style.css">
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="brand">
+      <span class="brand-icon"></span>
+      <span class="brand-name">Cash<span>Track</span></span>
+    </div>
+
+    <h1>ATM CASH INVENTORY SYSTEM</h1>
+    <p>Monitor, load, dispense, and restock ATM denominations in real time.</p>
+  </div>
+  <div class="bottom-bar"></div>
+</header>
+
+<main>
+
+  <!-- STATS -->
+  <div class="stats">
+    <div class="stat-card navy">
+      <div class="stat-value" id="stat-total">₱0</div>
+      <div class="stat-label">Total Cash in ATM</div>
+    </div>
+    <div class="stat-card green">
+      <div class="stat-value" id="stat-bills">0</div>
+      <div class="stat-label">Total Bills</div>
+    </div>
+    <div class="stat-card orange">
+      <div class="stat-value" id="stat-low">0</div>
+      <div class="stat-label">Low Denominations</div>
+    </div>
+    <div class="stat-card red">
+      <div class="stat-value" id="stat-empty">0</div>
+      <div class="stat-label">Empty Slots</div>
+    </div>
+  </div>
+
+  <!-- DENOMINATION INVENTORY -->
+  <div class="card">
+    <div class="card-title">Bill Inventory</div>
+    <div class="table-wrap">
+      <table id="denomTable">
+        <thead>
+          <tr>
+            <th>Denomination</th>
+            <th>Bills Available</th>
+            <th>Total Value</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="denomBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- LOAD BILLS -->
+  <div class="card">
+    <div class="card-title">Load Bills into ATM</div>
+    <div class="field-row">
+      <div class="field">
+        <label for="loadDenom">Denomination</label>
+        <select id="loadDenom">
+          <option value="1000">₱1,000</option>
+          <option value="500">₱500</option>
+          <option value="200">₱200</option>
+          <option value="100">₱100</option>
+          <option value="50">₱50</option>
+          <option value="20">₱20</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="loadQty">Number of Bills</label>
+        <input type="number" id="loadQty" placeholder="e.g. 50" min="1" value="1">
+      </div>
+      <div class="field">
+        <label for="loadOfficer">Officer Name</label>
+        <input type="text" id="loadOfficer" placeholder="e.g. Juan dela Cruz">
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-green" onclick="loadBills()">Load Bills</button>
+    </div>
+  </div>
+
+  <!-- DISPENSE / WITHDRAW -->
+  <div class="card">
+    <div class="card-title">Simulate Withdrawal</div>
+    <div class="field-row">
+      <div class="field">
+        <label for="withdrawAmount">Withdrawal Amount (₱)</label>
+        <input type="number" id="withdrawAmount" placeholder="e.g. 2500" min="20" step="20">
+      </div>
+      <div class="field">
+        <label for="withdrawAccount">Account Number</label>
+        <input type="text" id="withdrawAccount" placeholder="e.g. 1234-5678">
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-orange" onclick="dispense()">Dispense Cash</button>
+    </div>
+    <div id="dispenseSummary" class="dispense-summary" style="display:none;"></div>
+  </div>
+
+  <!-- RESTOCK -->
+  <div class="card">
+    <div class="card-title">Restock Denomination</div>
+    <div class="field-row">
+      <div class="field">
+        <label for="restockDenom">Denomination</label>
+        <select id="restockDenom">
+          <option value="1000">₱1,000</option>
+          <option value="500">₱500</option>
+          <option value="200">₱200</option>
+          <option value="100">₱100</option>
+          <option value="50">₱50</option>
+          <option value="20">₱20</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="restockQty">Number of Bills</label>
+        <input type="number" id="restockQty" placeholder="e.g. 100" min="1" value="1">
+      </div>
+      <div class="field">
+        <label for="restockOfficer">Officer Name</label>
+        <input type="text" id="restockOfficer" placeholder="e.g. Maria Santos">
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-navy" onclick="restockBills()">Restock</button>
+    </div>
+  </div>
+
+  <!-- TRANSACTION LOG -->
+  <div class="card">
+    <div class="card-title">Transaction Log</div>
+    <div class="table-wrap">
+      <table class="log-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Timestamp</th>
+            <th>Type</th>
+            <th>Denomination</th>
+            <th>Bills</th>
+            <th>Amount (₱)</th>
+            <th>Officer / Account</th>
+          </tr>
+        </thead>
+        <tbody id="logBody">
+          <tr><td colspan="7" class="empty-state">No transactions yet.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</main>
+
+<div id="toast"></div>
+<footer>Activity 4 &nbsp;·&nbsp; Justin Tyler M. Arcilla BIT33</footer>
+
+<script>
+  const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyu_KwKSKApBDJB0e-vSJiyaEsESIvzvSAvm9NVWUFvHOL8v44dvoO4P_fu3ei7f9uWEw/exec';
+
+  // ── DENOMINATION STATE ──
+  // Each slot: { denom, bills }
+  const denominations = [1000, 500, 200, 100, 50, 20];
+
+  let inventory = {};
+  denominations.forEach(d => { inventory[d] = 0; });
+
+  let logs = [];
+
+  // ── ANONYMOUS FUNCTIONS ──
+
+  const formatPHP = (val) => '₱' + Number(val).toLocaleString('en-PH', { minimumFractionDigits: 2 });
+
+  const getStatus = (bills) => {
+    if (bills === 0)   return { label: 'Empty',    cls: 'badge-empty' };
+    if (bills <= 10)   return { label: 'Low',      cls: 'badge-low' };
+    return                    { label: 'OK',        cls: 'badge-ok' };
+  };
+
+  const showToast = (msg, color = '#F47C2B') => {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.style.borderLeftColor = color;
+    t.style.display = 'block';
+    setTimeout(() => { t.style.display = 'none'; }, 3500);
+  };
+
+  const updateStats = () => {
+    const totalBills = denominations.reduce((s, d) => s + inventory[d], 0);
+    const totalCash  = denominations.reduce((s, d) => s + inventory[d] * d, 0);
+    const lowCount   = denominations.filter(d => inventory[d] > 0 && inventory[d] <= 10).length;
+    const emptyCount = denominations.filter(d => inventory[d] === 0).length;
+
+    document.getElementById('stat-total').textContent = formatPHP(totalCash);
+    document.getElementById('stat-bills').textContent = totalBills;
+    document.getElementById('stat-low').textContent   = lowCount;
+    document.getElementById('stat-empty').textContent = emptyCount;
+  };
+
+  const renderDenomTable = () => {
+    const tbody = document.getElementById('denomBody');
+    tbody.innerHTML = denominations.map(d => {
+      const bills = inventory[d];
+      const value = bills * d;
+      const s = getStatus(bills);
+      return `<tr>
+        <td><strong>${formatPHP(d)}</strong></td>
+        <td>${bills}</td>
+        <td>${formatPHP(value)}</td>
+        <td><span class="badge ${s.cls}">${s.label}</span></td>
+      </tr>`;
+    }).join('');
+  };
+
+  const renderLog = () => {
+    const tbody = document.getElementById('logBody');
+    if (logs.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="7" class="empty-state">No transactions yet.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = [...logs].reverse().map((log, idx) => `
+      <tr>
+        <td>${logs.length - idx}</td>
+        <td>${log.timestamp}</td>
+        <td><span class="badge ${
+          log.type === 'Load'     ? 'badge-ok' :
+          log.type === 'Restock' ? 'badge-ok' :
+          log.type === 'Dispense'? 'badge-low' : 'badge-empty'
+        }">${log.type}</span></td>
+        <td>${log.denom}</td>
+        <td>${log.bills}</td>
+        <td>${formatPHP(log.amount)}</td>
+        <td>${log.ref}</td>
+      </tr>
+    `).join('');
+  };
+
+  const postToSheet = (payload) => {
+    const fd = new FormData();
+    Object.keys(payload).forEach(k => fd.append(k, payload[k]));
+    fetch(SCRIPT_URL, { method: 'POST', body: fd })
+      .catch(err => console.error('Sheet sync error:', err));
+  };
+
+  const refresh = () => {
+    renderDenomTable();
+    renderLog();
+    updateStats();
+  };
+
+  // ── LOAD BILLS ──
+  const loadBills = () => {
+    const denom    = parseInt(document.getElementById('loadDenom').value);
+    const qty      = parseInt(document.getElementById('loadQty').value) || 0;
+    const officer  = document.getElementById('loadOfficer').value.trim() || 'Unknown';
+
+    if (qty < 1) { showToast('⚠️ Enter at least 1 bill.', '#c0392b'); return; }
+
+    // addition
+    inventory[denom] = inventory[denom] + qty;
+
+    const timestamp = new Date().toLocaleString();
+    const amount    = qty * denom;   // multiplication
+
+    logs.push({ timestamp, type: 'Load', denom: `₱${denom}`, bills: qty, amount, ref: officer });
+    postToSheet({ timestamp, transactionType: 'Load', denomination: denom, bills: qty, amount, ref: officer });
+
+    document.getElementById('loadQty').value = 1;
+    refresh();
+    showToast(`✅ Loaded ${qty}× ₱${denom} bills — ${formatPHP(amount)} added.`, '#2e7d5e');
+  };
+
+  // ── DISPENSE (WITHDRAWAL) ──
+  const dispense = () => {
+    const amount  = parseInt(document.getElementById('withdrawAmount').value) || 0;
+    const account = document.getElementById('withdrawAccount').value.trim() || 'Unknown';
+
+    if (amount < 20)    { showToast('⚠️ Minimum withdrawal is ₱20.', '#c0392b'); return; }
+    if (amount % 20 !== 0) { showToast('⚠️ Amount must be a multiple of ₱20.', '#c0392b'); return; }
+
+    const totalCash = denominations.reduce((s, d) => s + inventory[d] * d, 0);
+    if (amount > totalCash) { showToast(`⚠️ Insufficient ATM funds. Available: ${formatPHP(totalCash)}`, '#c0392b'); return; }
+
+    // Greedy algorithm — largest bills first (division + subtraction)
+    let remaining = amount;
+    const breakdown = {};
+    denominations.forEach(d => { breakdown[d] = 0; });
+
+    for (const d of denominations) {
+      if (remaining <= 0) break;
+      const needed  = Math.floor(remaining / d);          // division
+      const canGive = Math.min(needed, inventory[d]);     // comparison
+      breakdown[d]  = canGive;
+      remaining     = remaining - (canGive * d);          // subtraction + multiplication
+    }
+
+    if (remaining > 0) { showToast('Cannot dispense exact amount with available bills.', '#c0392b'); return; }
+
+    // Deduct from inventory and log each denomination used
+    const timestamp = new Date().toLocaleString();
+    let summaryHTML = '<strong>Bills Dispensed:</strong><ul>';
+
+    denominations.forEach(d => {
+      if (breakdown[d] > 0) {
+        inventory[d] = inventory[d] - breakdown[d];   // subtraction
+        const lineAmt = breakdown[d] * d;             // multiplication
+        logs.push({ timestamp, type: 'Dispense', denom: `₱${d}`, bills: breakdown[d], amount: lineAmt, ref: account });
+        postToSheet({ timestamp, transactionType: 'Dispense', denomination: d, bills: breakdown[d], amount: lineAmt, ref: account });
+        summaryHTML += `<li>${breakdown[d]}× ₱${d} = ${formatPHP(lineAmt)}</li>`;
+      }
+    });
+
+    summaryHTML += `</ul><strong>Total Dispensed: ${formatPHP(amount)}</strong>`;
+
+    const summary = document.getElementById('dispenseSummary');
+    summary.innerHTML = summaryHTML;
+    summary.style.display = 'block';
+
+    document.getElementById('withdrawAmount').value = '';
+    document.getElementById('withdrawAccount').value = '';
+    refresh();
+    showToast(`💸 Dispensed ${formatPHP(amount)} for account ${account}`, '#F47C2B');
+  };
+
+  // ── RESTOCK ──
+  const restockBills = () => {
+    const denom   = parseInt(document.getElementById('restockDenom').value);
+    const qty     = parseInt(document.getElementById('restockQty').value) || 0;
+    const officer = document.getElementById('restockOfficer').value.trim() || 'Unknown';
+
+    if (qty < 1) { showToast('⚠️ Enter at least 1 bill.', '#c0392b'); return; }
+
+    inventory[denom] = inventory[denom] + qty;   // addition
+    const amount = qty * denom;                  // multiplication
+    const timestamp = new Date().toLocaleString();
+
+    logs.push({ timestamp, type: 'Restock', denom: `₱${denom}`, bills: qty, amount, ref: officer });
+    postToSheet({ timestamp, transactionType: 'Restock', denomination: denom, bills: qty, amount, ref: officer });
+
+    document.getElementById('restockQty').value = 1;
+    refresh();
+    showToast(`🔄 Restocked ${qty}× ₱${denom} — ${formatPHP(amount)} added.`, '#1B3A5C');
+  };
+
+  // Init
+  refresh();
+</script>
+
+</body>
+</html>
